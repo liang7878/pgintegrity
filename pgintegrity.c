@@ -260,6 +260,10 @@ pg_integrity(PG_FUNCTION_ARGS)
 		heap_deform_tuple(newTuple, insertTupledesc, insertvalue, insertisnull);
 		Oid t_data_Oid = HeapTupleGetOid(newTuple);	//oid of insert tuple
 
+		
+		char *dbname;
+		dbname = get_database_name(currentRel->rd_node.dbNode);
+
 		/* prepare oid and watermark for insert tuple */
 		char *verifyresult = getAttrCon(newTuple, insertTupledesc);
 
@@ -288,29 +292,56 @@ pg_integrity(PG_FUNCTION_ARGS)
 		if((con = SPI_connect()) < 0)
 			elog(ERROR, "select spi error");
 
-		char *query = "SELECT * FROM t_city where oid = 221515";
+		char *query_current_user = "SELECT CURRENT_USER";
+		char *username = NULL;
 
-		selectres = SPI_execute(query, true, 0);
 
-		if(selectres == SPI_OK_SELECT) {
+		select_current_user_res = SPI_execute(query_current_user, true, 0);
+		if(select_current_user_res == SPI_OK_SELECT) {
 			uint64 i;
-			for(i=0; i< SPI_processed; i++) {
-				bool isnull;
-
-				if(!isnull){
-					char *test;
-					test = getAttrCon(SPI_tuptable->vals[i], SPI_tuptable->tupdesc);
-					int testwater;
-					testwater = APHash(test, strlen(test));
-					char *testwaterchar;
-					testwaterchar = itostr(testwaterchar, testwater);
-				}
+			for(i=0; i<SPI_processed; i++) {
+				username = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+				elog(INFO, "current user: %s", username);
 			}
 		}
 
-		int insertres;
+		if(username == NULL) {
+			elog(ERROR, "Get Username Error!");
+		}
 
-		insertres = SPI_execute(insertwater, false, 0);
+		char *query_user_privilege;
+
+
+
+		/* edit your database info here */
+		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
+		char *qup2 = "' AND db_name='";
+		char *qup3 = "' AND table_name='";
+		char *qup4 = "'";
+
+		query_user_privilege = palloc(strlen(qup1)+strlen(qup2)+strlen(qup3)+strlen(qup4)+strlen(username)+strlen(dbname)+strlen(relName));
+
+		if(query_user_privilege == NULL) {
+		}else{
+			strcpy(query_user_privilege, qup1);
+			strcat(query_user_privilege, username);
+			strcat(query_user_privilege, qup2);
+			strcat(query_user_privilege, dbname);
+			strcat(query_user_privilege, qup3);
+			strcat(query_user_privilege, relName);
+			strcat(query_user_privilege, qup4);
+		}
+
+		elog(INFO, "query_user_privilege: %s", query_user_privilege);
+		int query_user_privilege_res;
+		query_user_privilege_res = SPI_execute(query_user_privilege, true, 0);
+		if(query_user_privilege_res == SPI_OK_SELECT) {
+			if(SPI_processed >= 1) {
+				int insertres;
+				insertres = SPI_execute(insertwater, false, 0);
+			} else {
+			}
+		}
 
 		SPI_finish();
 	}
@@ -338,31 +369,8 @@ pg_integrity(PG_FUNCTION_ARGS)
 
     tupdesc = trigdata->tg_relation->rd_att;
 
-///    /* connect to SPI manager */
-//    if ((ret = SPI_connect()) < 0)
-//        elog(ERROR, "trigf (fired %s): SPI_connect returned %d", when, ret);
-
-    /* get number of rows in table */
-//    ret = SPI_exec("SELECT count(*) FROM ttest", 0);
-
-//    if (ret < 0)
-  //      elog(ERROR, "trigf (fired %s): SPI_exec returned %d", when, ret);
-
-    /* count(*) returns int8, so be careful to convert */
-//    i = DatumGetInt64(SPI_getbinval(SPI_tuptable->vals[0],
-//                                    SPI_tuptable->tupdesc,
-//                                    1,
-//                                    &isnull));
-
 
     SPI_finish();
-
-//    if (checknull)
-//    {
-//        SPI_getbinval(rettuple, tupdesc, 1, &isnull);
-//        if (isnull)
-//            rettuple = NULL;
-//    }
 
     return PointerGetDatum(rettuple);
 }
