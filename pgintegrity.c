@@ -174,9 +174,9 @@ pg_integrity(PG_FUNCTION_ARGS)
 		oidchar = itostr(oidchar, t_data_Oid);
 
 
-		char *insert1 = "INSERT INTO t_watermark VALUES (";
-		char *insert2 = ",\'";
-		char *insert3 = "\')";
+		char *insert1 = "SELECT dblink_exec('connection', 'insert into t_watermark values (";
+		char *insert2 = ",\'\'";
+		char *insert3 = "\'\')\')";
 
 		char *insertwater = palloc(strlen(insert1)+strlen(oidchar)+strlen(insert2)+strlen(watermarkchar)+strlen(insert3));
 
@@ -239,8 +239,17 @@ pg_integrity(PG_FUNCTION_ARGS)
 		query_user_privilege_res = SPI_execute(query_user_privilege, true, 0);
 		if(query_user_privilege_res == SPI_OK_SELECT) {
 			if(SPI_processed >= 1) {
+				int connectres;
 				int insertres;
+				int beginres;
+				int commitres;
+				int disconnectres;
+				/* edit your database info here */
+				connectres = SPI_execute("SELECT dblink_connect('connection', 'hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808')", false, 0);
+				beginres = SPI_execute("SELECT dblink_exec('connection', 'BEGIN')", false, 0);
 				insertres = SPI_execute(insertwater, false, 0);
+				commitres = SPI_execute("SELECT dblink_exec('connection', 'COMMIT')", false, 0);
+				disconnectres = SPI_execute("SELECT dblink_disconnect('connection');", false, 0);
 			} else {
 			}
 		}
@@ -275,10 +284,11 @@ pg_integrity(PG_FUNCTION_ARGS)
 		char *oidchar;
 		oidchar = itostr(oidchar, t_data_Oid);
 
-		char *insert1 = "UPDATE t_watermark SET watermark = \'";
-		char *insert2 = "\' WHERE oid = ";
+		char *insert1 = "SELECT dblink_exec('connection', 'UPDATE t_watermark SET watermark = ''";
+		char *insert2 = "\'\' WHERE oid=";
+		char *insert3 = "\')";
 
-		char *insertwater = palloc(strlen(insert1)+strlen(oidchar)+strlen(insert2)+strlen(watermarkchar));
+		char *insertwater = palloc(strlen(insert1)+strlen(oidchar)+strlen(insert2)+strlen(watermarkchar)+strlen(insert3));
 
 		if(insertwater == NULL) {
 		} else {
@@ -286,6 +296,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 			strcat(insertwater, watermarkchar);
 			strcat(insertwater, insert2);
 			strcat(insertwater, oidchar);
+			strcat(insertwater, insert3);
 		}
 
 		int con;
@@ -337,8 +348,17 @@ pg_integrity(PG_FUNCTION_ARGS)
 		query_user_privilege_res = SPI_execute(query_user_privilege, true, 0);
 		if(query_user_privilege_res == SPI_OK_SELECT) {
 			if(SPI_processed >= 1) {
+				int connectres;
 				int insertres;
+				int beginres;
+				int commitres;
+				int disconnectres;
+				/* edit your database info here */
+				connectres = SPI_execute("SELECT dblink_connect('connection', 'hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808')", false, 0);
+				beginres = SPI_execute("SELECT dblink_exec('connection', 'BEGIN')", false, 0);
 				insertres = SPI_execute(insertwater, false, 0);
+				commitres = SPI_execute("SELECT dblink_exec('connection', 'COMMIT')", false, 0);
+				disconnectres = SPI_execute("SELECT dblink_disconnect('connection');", false, 0);
 			} else {
 			}
 		}
