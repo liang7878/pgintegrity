@@ -235,29 +235,15 @@ pg_integrity(PG_FUNCTION_ARGS)
 		}
 		
 		elog(INFO, "query_user_privilege: %s", query_user_privilege);
-//		char *query = "SELECT * FROM t_city where oid = 221515";
-
-//		selectres = SPI_execute(query, true, 0);
-		
-//		if(selectres == SPI_OK_SELECT) {
-//			uint64 i;
-//			for(i=0; i< SPI_processed; i++) {
-//				bool isnull;
-//				
-//				if(!isnull){
-//					char *test;
-//					test = getAttrCon(SPI_tuptable->vals[i], SPI_tuptable->tupdesc);
-//					int testwater;
-//					testwater = APHash(test, strlen(test));
-//					char *testwaterchar;
-//					testwaterchar = itostr(testwaterchar, testwater);
-//				}
-//			}
-//		}
-		
-		int insertres;
-
-		insertres = SPI_execute(insertwater, false, 0);
+		int query_user_privilege_res;
+		query_user_privilege_res = SPI_execute(query_user_privilege, true, 0);
+		if(query_user_privilege_res == SPI_OK_SELECT) {
+			if(SPI_processed >= 1) {
+				int insertres;
+				insertres = SPI_execute(insertwater, false, 0);
+			} else {
+			}
+		}
 
 		SPI_finish();
 	}
