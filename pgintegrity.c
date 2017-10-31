@@ -211,8 +211,30 @@ pg_integrity(PG_FUNCTION_ARGS)
 			elog(ERROR, "Get Username Error!");
 		}
 
-		char *query_user_privilege = "";
+		char *query_user_privilege;
+
+
+
+		/* edit your database info here */
+		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
+		char *qup2 = "' AND db_name='";
+		char *qup3 = "' AND table_name='";
+		char *qup4 = "'";
+
+		query_user_privilege = palloc(strlen(qup1)+strlen(qup2)+strlen(qup3)+strlen(qup4)+strlen(username)+strlen(dbname)+strlen(relName));
+
+		if(query_user_privilege == NULL) {
+		}else{
+			strcpy(query_user_privilege, qup1);
+			strcat(query_user_privilege, username);
+			strcat(query_user_privilege, qup2);
+			strcat(query_user_privilege, dbname);
+			strcat(query_user_privilege, qup3);
+			strcat(query_user_privilege, relName);
+			strcat(query_user_privilege, qup4);
+		}
 		
+		elog(INFO, "query_user_privilege: %s", query_user_privilege);
 //		char *query = "SELECT * FROM t_city where oid = 221515";
 
 //		selectres = SPI_execute(query, true, 0);
