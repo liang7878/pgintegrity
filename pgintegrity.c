@@ -114,7 +114,6 @@ char *getAttrCon(HeapTuple tuple, TupleDesc tupdesc) {
 Datum
 pg_integrity(PG_FUNCTION_ARGS)
 {
-	elog(INFO, "enter the function");
     TriggerData *trigdata = (TriggerData *) fcinfo->context;
     TupleDesc   tupdesc;
     HeapTuple   rettuple;
@@ -139,9 +138,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 	int select_current_user_res;
 //	List *oidlist = NIL;
 
-	elog(INFO, "before fire by insert");
 	if(TRIGGER_FIRED_BY_INSERT(trigdata->tg_event) && TRIGGER_FIRED_AFTER(trigdata->tg_event)) {
-		elog(INFO, "enter fire insert 1");
 		
 		isUpdate = true;
 		newTuple = trigdata->tg_trigtuple;
@@ -153,16 +150,12 @@ pg_integrity(PG_FUNCTION_ARGS)
 		insertisnull = (bool *) palloc(ncolumns * sizeof(bool));
 		heap_deform_tuple(newTuple, insertTupledesc, insertvalue, insertisnull);
 		Oid t_data_Oid = HeapTupleGetOid(newTuple);	//oid of insert tuple
-		// elog(INFO, "Oiddidididi: %i", t_data_Oid);
 		
 		char *dbname;
 		dbname = get_database_name(currentRel->rd_node.dbNode);
 
-		elog(INFO, "current relation name: %s", relName);
-		elog(INFO, "current database name: %s", dbname);
 		/* prepare oid and watermark for insert tuple */
 		char *verifyresult = getAttrCon(newTuple, insertTupledesc);
-		elog(INFO, "CON result: %s", verifyresult);
 
 		int watermarkint;
 		watermarkint = APHash(verifyresult, strlen(verifyresult));
@@ -178,6 +171,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 		char *insert2 = ",\'\'";
 		char *insert3 = "\'\')\')";
 
+
 		char *insertwater = palloc(strlen(insert1)+strlen(oidchar)+strlen(insert2)+strlen(watermarkchar)+strlen(insert3));
 
 		if(insertwater == NULL) {
@@ -187,12 +181,10 @@ pg_integrity(PG_FUNCTION_ARGS)
 			strcat(insertwater, insert2);
 			strcat(insertwater, watermarkchar);
 			strcat(insertwater, insert3);
-			elog(INFO, "insert watermark state: %s", insertwater);
 		}
 
 		int con;
 		if((con = SPI_connect()) < 0)
-			elog(ERROR, "select spi error");
 
 		char *query_current_user = "SELECT CURRENT_USER";
 		char *username = NULL;
@@ -203,12 +195,10 @@ pg_integrity(PG_FUNCTION_ARGS)
 			uint64 i;
 			for(i=0; i<SPI_processed; i++) {
 				username = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
-				elog(INFO, "current user: %s", username);
 			}
 		}
 
 		if(username == NULL) {
-			elog(ERROR, "Get Username Error!");
 		}
 
 		char *query_user_privilege;
@@ -234,7 +224,6 @@ pg_integrity(PG_FUNCTION_ARGS)
 			strcat(query_user_privilege, qup4);
 		}
 		
-		elog(INFO, "query_user_privilege: %s", query_user_privilege);
 		int query_user_privilege_res;
 		query_user_privilege_res = SPI_execute(query_user_privilege, true, 0);
 		if(query_user_privilege_res == SPI_OK_SELECT) {
@@ -312,7 +301,6 @@ pg_integrity(PG_FUNCTION_ARGS)
 			uint64 i;
 			for(i=0; i<SPI_processed; i++) {
 				username = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
-				elog(INFO, "current user: %s", username);
 			}
 		}
 
@@ -343,7 +331,6 @@ pg_integrity(PG_FUNCTION_ARGS)
 			strcat(query_user_privilege, qup4);
 		}
 
-		elog(INFO, "query_user_privilege: %s", query_user_privilege);
 		int query_user_privilege_res;
 		query_user_privilege_res = SPI_execute(query_user_privilege, true, 0);
 		if(query_user_privilege_res == SPI_OK_SELECT) {
