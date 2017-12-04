@@ -184,7 +184,9 @@ pg_integrity(PG_FUNCTION_ARGS)
 		}
 
 		int con;
-		if((con = SPI_connect()) < 0)
+		if((con = SPI_connect()) < 0){
+			elog(ERROR, "SPI_connect error");
+		}
 
 		char *query_current_user = "SELECT CURRENT_USER";
 		char *username = NULL;
