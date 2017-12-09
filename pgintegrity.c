@@ -110,6 +110,43 @@ char *getAttrCon(HeapTuple tuple, TupleDesc tupdesc) {
 	return result;
 }
 
+char *connectChar(char *str1, char *str2) {
+	char *result = palloc(strlen(str1) + strlen(str2));
+
+	if(result == NULL) {
+		return NULL;
+	} else {
+		strcpy(result, str1);
+		strcat(result, str2);
+		return result;
+	}
+}
+
+char *randstr(char *pointer, int n) {
+    int i,randnum;
+	char str_array[63] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+	for (i = 0; i < n; i++) {
+		srand(time(NULL));                    
+		usleep(100000);                     
+		randnum = rand()%62;
+		*pointer = str_array[randnum];
+		pointer++;
+	}
+	*pointer = '\0';
+	return (pointer - n);
+}
+
+void genRandomString(char* buff, int length) {
+    char metachar[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+	int i = 0;
+	srand((unsigned) time(NULL)); 
+	for (i = 0; i < length; i++){
+		buff[i] = metachar[rand() % 62];
+	}
+
+	buff[length] = '\0';
+}
+
 
 Datum
 pg_integrity(PG_FUNCTION_ARGS)
@@ -166,11 +203,13 @@ pg_integrity(PG_FUNCTION_ARGS)
 		char *oidchar;
 		oidchar = itostr(oidchar, t_data_Oid);
 
+		char *rand0 = (char *)malloc(sizeof(char) * 20);
+		genRandomString(rand0, 10);
 
-		char *insert1 = "SELECT dblink_exec('connection', 'insert into t_watermark values (";
+		char *insert1 = connectChar("SELECT dblink_exec('", connectChar(rand0, "', 'insert into t_watermark values ("));
+
 		char *insert2 = ",\'\'";
 		char *insert3 = "\'\')\')";
-
 
 		char *insertwater = palloc(strlen(insert1)+strlen(oidchar)+strlen(insert2)+strlen(watermarkchar)+strlen(insert3));
 
@@ -182,6 +221,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 			strcat(insertwater, watermarkchar);
 			strcat(insertwater, insert3);
 		}
+
 
 		int con;
 		if((con = SPI_connect()) < 0){
@@ -236,11 +276,13 @@ pg_integrity(PG_FUNCTION_ARGS)
 				int commitres;
 				int disconnectres;
 				/* edit your database info here */
-				connectres = SPI_execute("SELECT dblink_connect_u('connection', 'hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808')", false, 0);
-				beginres = SPI_execute("SELECT dblink_exec('connection', 'BEGIN')", false, 0);
+				char *rand1 = (char *)malloc(sizeof(char) * 20);
+				genRandomString(rand1, 10);
+				connectres = SPI_execute(connectChar("SELECT dblink_connect_u('", connectChar(rand0, "', 'hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808')")), false, 0);
+				beginres = SPI_execute(connectChar("SELECT dblink_exec('", connectChar(rand0, "', 'BEGIN')")), false, 0);
 				insertres = SPI_execute(insertwater, false, 0);
-				commitres = SPI_execute("SELECT dblink_exec('connection', 'COMMIT')", false, 0);
-				disconnectres = SPI_execute("SELECT dblink_disconnect('connection');", false, 0);
+				commitres = SPI_execute(connectChar("SELECT dblink_exec('", connectChar(rand0, "', 'COMMIT')")), false, 0);
+				disconnectres = SPI_execute(connectChar("SELECT dblink_disconnect('", connectChar(rand0, "');")), false, 0);
 			} else {
 			}
 		}
@@ -275,7 +317,11 @@ pg_integrity(PG_FUNCTION_ARGS)
 		char *oidchar;
 		oidchar = itostr(oidchar, t_data_Oid);
 
-		char *insert1 = "SELECT dblink_exec('connection', 'UPDATE t_watermark SET watermark = ''";
+		char *rand1 = (char *)malloc(sizeof(char) * 20);
+		genRandomString(rand1, 10);
+
+
+		char *insert1 = connectChar("SELECT dblink_exec('", connectChar(rand1, "', 'UPDATE t_watermark SET watermark = ''"));
 		char *insert2 = "\'\' WHERE oid=";
 		char *insert3 = "\')";
 
@@ -343,11 +389,11 @@ pg_integrity(PG_FUNCTION_ARGS)
 				int commitres;
 				int disconnectres;
 				/* edit your database info here */
-				connectres = SPI_execute("SELECT dblink_connect_u('connection', 'hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808')", false, 0);
-				beginres = SPI_execute("SELECT dblink_exec('connection', 'BEGIN')", false, 0);
+				connectres = SPI_execute(connectChar("SELECT dblink_connect_u('", connectChar(rand1, "', 'hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808')")), false, 0);
+				beginres = SPI_execute(connectChar("SELECT dblink_exec('", connectChar(rand1, "', 'BEGIN')")), false, 0);
 				insertres = SPI_execute(insertwater, false, 0);
-				commitres = SPI_execute("SELECT dblink_exec('connection', 'COMMIT')", false, 0);
-				disconnectres = SPI_execute("SELECT dblink_disconnect('connection');", false, 0);
+				commitres = SPI_execute(connectChar("SELECT dblink_exec('", connectChar(rand1, "', 'COMMIT')")), false, 0);
+				disconnectres = SPI_execute(connectChar("SELECT dblink_disconnect('", connectChar(rand1, "');")), false, 0);
 			} else {
 			}
 		}
