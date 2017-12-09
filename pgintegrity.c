@@ -208,7 +208,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 
 
 		/* edit your database info here */
-		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
+		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=0o0o', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
 		char *qup2 = "' AND db_name='";
 		char *qup3 = "' AND table_name='";
 		char *qup4 = "'";
@@ -236,7 +236,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 				int commitres;
 				int disconnectres;
 				/* edit your database info here */
-				connectres = SPI_execute("SELECT dblink_connect_u('connection', 'hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808')", false, 0);
+				connectres = SPI_execute("SELECT dblink_connect_u('connection', 'hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=0o0o')", false, 0);
 				beginres = SPI_execute("SELECT dblink_exec('connection', 'BEGIN')", false, 0);
 				insertres = SPI_execute(insertwater, false, 0);
 				commitres = SPI_execute("SELECT dblink_exec('connection', 'COMMIT')", false, 0);
@@ -315,7 +315,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 
 
 		/* edit your database info here */
-		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
+		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=0o0o', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
 		char *qup2 = "' AND db_name='";
 		char *qup3 = "' AND table_name='";
 		char *qup4 = "'";
@@ -343,7 +343,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 				int commitres;
 				int disconnectres;
 				/* edit your database info here */
-				connectres = SPI_execute("SELECT dblink_connect_u('connection', 'hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808')", false, 0);
+				connectres = SPI_execute("SELECT dblink_connect_u('connection', 'hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=0o0o')", false, 0);
 				beginres = SPI_execute("SELECT dblink_exec('connection', 'BEGIN')", false, 0);
 				insertres = SPI_execute(insertwater, false, 0);
 				commitres = SPI_execute("SELECT dblink_exec('connection', 'COMMIT')", false, 0);
