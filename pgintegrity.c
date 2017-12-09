@@ -14,6 +14,10 @@ PG_MODULE_MAGIC;
 
 PG_FUNCTION_INFO_V1(pg_integrity);
 
+
+char *global_port = "5432";
+char *global_password= "940808";
+
 /* transfer int to char*  */
 char* itostr(char *str, int num) //将i转化位字符串存入str
 {
@@ -126,8 +130,8 @@ char *randstr(char *pointer, int n) {
     int i,randnum;
 	char str_array[63] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	for (i = 0; i < n; i++) {
-		srand(time(NULL));                    
-		usleep(100000);                     
+		srand(time(NULL));
+		usleep(100000);
 		randnum = rand()%62;
 		*pointer = str_array[randnum];
 		pointer++;
@@ -159,7 +163,6 @@ pg_integrity(PG_FUNCTION_ARGS)
     bool        isnull;
     int         ret, i;
 
-	
 	bool isUpdate = false;
 	bool isInsert = false;
 	HeapTuple oldTuple = NULL;
@@ -173,10 +176,8 @@ pg_integrity(PG_FUNCTION_ARGS)
 	int selectres;
 	List *list = NIL;	//used to store select result
 	int select_current_user_res;
-//	List *oidlist = NIL;
 
 	if(TRIGGER_FIRED_BY_INSERT(trigdata->tg_event) && TRIGGER_FIRED_AFTER(trigdata->tg_event)) {
-		
 		isUpdate = true;
 		newTuple = trigdata->tg_trigtuple;
 		currentRel = trigdata->tg_relation;
@@ -187,7 +188,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 		insertisnull = (bool *) palloc(ncolumns * sizeof(bool));
 		heap_deform_tuple(newTuple, insertTupledesc, insertvalue, insertisnull);
 		Oid t_data_Oid = HeapTupleGetOid(newTuple);	//oid of insert tuple
-		
+
 		char *dbname;
 		dbname = get_database_name(currentRel->rd_node.dbNode);
 
@@ -209,9 +210,11 @@ pg_integrity(PG_FUNCTION_ARGS)
 		char *insert1 = connectChar("SELECT dblink_exec('", connectChar(rand0, "', 'insert into t_watermark values ("));
 
 		char *insert2 = ",\'\'";
-		char *insert3 = "\'\')\')";
+		char *insert3 = "\'\', \'\'";
+		char *insert4 = " \'\', \'\'";
+		char *insert5 = "\'\')\')";
 
-		char *insertwater = palloc(strlen(insert1)+strlen(oidchar)+strlen(insert2)+strlen(watermarkchar)+strlen(insert3));
+		char *insertwater = palloc(strlen(insert1)+strlen(oidchar)+strlen(insert2)+strlen(watermarkchar)+strlen(insert3)+strlen(dbname)+strlen(insert4)+ strlen(relName)+ strlen(insert5));
 
 		if(insertwater == NULL) {
 		} else {
@@ -220,8 +223,11 @@ pg_integrity(PG_FUNCTION_ARGS)
 			strcat(insertwater, insert2);
 			strcat(insertwater, watermarkchar);
 			strcat(insertwater, insert3);
+			strcat(insertwater, dbname);
+			strcat(insertwater, insert4);
+			strcat(insertwater, relName);
+			strcat(insertwater, insert5);
 		}
-
 
 		int con;
 		if((con = SPI_connect()) < 0){
@@ -248,16 +254,22 @@ pg_integrity(PG_FUNCTION_ARGS)
 
 
 		/* edit your database info here */
-		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
+		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=";
+		char *qup1_1_1 = " dbname=pgintegrity user=postgres password=";
+		char *qup1_1 = "', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
 		char *qup2 = "' AND db_name='";
 		char *qup3 = "' AND table_name='";
 		char *qup4 = "'";
 
-		query_user_privilege = palloc(strlen(qup1)+strlen(qup2)+strlen(qup3)+strlen(qup4)+strlen(username)+strlen(dbname)+strlen(relName));
+		query_user_privilege = palloc(strlen(qup1) + strlen(global_port) + strlen(qup1_1_1) + strlen(global_password) + strlen(qup1_1) +strlen(qup2)+strlen(qup3)+strlen(qup4)+strlen(username)+strlen(dbname)+strlen(relName));
 
 		if(query_user_privilege == NULL) {
 		}else{
 			strcpy(query_user_privilege, qup1);
+			strcat(query_user_privilege, global_port);
+			strcat(query_user_privilege, qup1_1_1);
+			strcat(query_user_privilege, global_password);
+			strcat(query_user_privilege, qup1_1);
 			strcat(query_user_privilege, username);
 			strcat(query_user_privilege, qup2);
 			strcat(query_user_privilege, dbname);
@@ -265,7 +277,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 			strcat(query_user_privilege, relName);
 			strcat(query_user_privilege, qup4);
 		}
-		
+
 		int query_user_privilege_res;
 		query_user_privilege_res = SPI_execute(query_user_privilege, true, 0);
 		if(query_user_privilege_res == SPI_OK_SELECT) {
@@ -278,7 +290,27 @@ pg_integrity(PG_FUNCTION_ARGS)
 				/* edit your database info here */
 				char *rand1 = (char *)malloc(sizeof(char) * 20);
 				genRandomString(rand1, 10);
-				connectres = SPI_execute(connectChar("SELECT dblink_connect_u('", connectChar(rand0, "', 'hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808')")), false, 0);
+				// char *connectchartrans = connectChar("SELECT dblink_connect_u('", connectChar(rand0, connectChar(connectChar("', 'hostaddr=127.0.0.1 port=", connectChar(global_port," dbname=pgintegrity user=postgres password=")), connectChar(global_password, "')"))));
+				// elog(INFO, "trans connect: %s", connectchartrans);
+				// 
+				char *connectchartrans1 = "SELECT dblink_connect_u('";
+				char *connectchartrans2 = "', 'hostaddr=127.0.0.1 port=";
+				char *connectchartrans3 = " dbname=pgintegrity user=postgres password=";
+				char *connectchartrans4 = "')";
+				char *connectchartrans = palloc(strlen(connectchartrans1)+strlen(rand0)+strlen(connectchartrans2)+ strlen(global_port) +strlen(connectchartrans3)+ strlen(global_password) +strlen(connectchartrans4));
+
+				if(connectchartrans == NULL) {
+				} else {
+					strcpy(connectchartrans, connectchartrans1);
+					strcat(connectchartrans, rand0);
+					strcat(connectchartrans, connectchartrans2);
+					strcat(connectchartrans, global_port);
+					strcat(connectchartrans, connectchartrans3);
+					strcat(connectchartrans, global_password);
+					strcat(connectchartrans, connectchartrans4);
+				}
+
+				connectres = SPI_execute(connectchartrans, false, 0);
 				beginres = SPI_execute(connectChar("SELECT dblink_exec('", connectChar(rand0, "', 'BEGIN')")), false, 0);
 				insertres = SPI_execute(insertwater, false, 0);
 				commitres = SPI_execute(connectChar("SELECT dblink_exec('", connectChar(rand0, "', 'COMMIT')")), false, 0);
@@ -302,7 +334,6 @@ pg_integrity(PG_FUNCTION_ARGS)
 		heap_deform_tuple(newTuple, insertTupledesc, insertvalue, insertisnull);
 		Oid t_data_Oid = HeapTupleGetOid(newTuple);	//oid of insert tuple
 
-		
 		char *dbname;
 		dbname = get_database_name(currentRel->rd_node.dbNode);
 
@@ -358,8 +389,6 @@ pg_integrity(PG_FUNCTION_ARGS)
 
 		char *query_user_privilege;
 
-
-
 		/* edit your database info here */
 		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
 		char *qup2 = "' AND db_name='";
@@ -412,15 +441,6 @@ pg_integrity(PG_FUNCTION_ARGS)
     else
         rettuple = trigdata->tg_trigtuple;
 
-    /* check for null values */
-    if (!TRIGGER_FIRED_BY_DELETE(trigdata->tg_event)
-        && TRIGGER_FIRED_BEFORE(trigdata->tg_event))
-        checknull = true;
-
-    if (TRIGGER_FIRED_BEFORE(trigdata->tg_event))
-        when = "before";
-    else
-        when = "after ";
 
     tupdesc = trigdata->tg_relation->rd_att;
 
