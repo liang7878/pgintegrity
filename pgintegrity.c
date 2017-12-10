@@ -322,7 +322,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 		SPI_finish();
 	}
 
-	if (TRIGGER_FIRED_BY_UPDATE(trigdata->tg_event) && TRIGGER_FIRED_AFTER(trigdata->tg_event)) {
+	if(TRIGGER_FIRED_BY_UPDATE(trigdata->tg_event) && TRIGGER_FIRED_AFTER(trigdata->tg_event)) {
 		isUpdate = true;
 		newTuple = trigdata->tg_newtuple;
 		currentRel = trigdata->tg_relation;
@@ -350,7 +350,6 @@ pg_integrity(PG_FUNCTION_ARGS)
 
 		char *rand1 = (char *)malloc(sizeof(char) * 20);
 		genRandomString(rand1, 10);
-
 
 		char *insert1 = connectChar("SELECT dblink_exec('", connectChar(rand1, "', 'UPDATE t_watermark SET watermark = ''"));
 		char *insert2 = "\'\' WHERE oid=";
@@ -390,16 +389,22 @@ pg_integrity(PG_FUNCTION_ARGS)
 		char *query_user_privilege;
 
 		/* edit your database info here */
-		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
+		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=";
+		char *qup1_1 = " dbname=pgintegrity user=postgres password=";
+		char *qup1_1_1 = "', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
 		char *qup2 = "' AND db_name='";
 		char *qup3 = "' AND table_name='";
 		char *qup4 = "'";
 
-		query_user_privilege = palloc(strlen(qup1)+strlen(qup2)+strlen(qup3)+strlen(qup4)+strlen(username)+strlen(dbname)+strlen(relName));
+		query_user_privilege = palloc(strlen(qup1) + strlen(global_port) + strlen(qup1_1) + strlen(global_password) +strlen(qup2)+strlen(qup3)+strlen(qup4)+strlen(username)+strlen(dbname)+strlen(relName));
 
 		if(query_user_privilege == NULL) {
 		}else{
 			strcpy(query_user_privilege, qup1);
+			strcat(query_user_privilege, global_port);
+			strcat(query_user_privilege, qup1_1);
+			strcat(query_user_privilege, global_password);
+			strcat(query_user_privilege, qup1_1_1);
 			strcat(query_user_privilege, username);
 			strcat(query_user_privilege, qup2);
 			strcat(query_user_privilege, dbname);
@@ -417,8 +422,28 @@ pg_integrity(PG_FUNCTION_ARGS)
 				int beginres;
 				int commitres;
 				int disconnectres;
+
+				char *updatetrans1 = "SELECT dblink_connect_u('";
+				char *updatetrans2 = "', 'hostaddr=127.0.0.1 port=";
+				char *updatetrans3 = " dbname=pgintegrity user=postgres password=";
+				char *updatetrans4 = "')";
+
+				char *updatetrans = palloc(strlen(updatetrans1)+ strlen(rand1) +strlen(updatetrans2)+ strlen(global_port) +strlen(updatetrans3) + strlen(global_password) + strlen(updatetrans4));
+
+				if(updatetrans == NULL) {
+				} else {
+					strcpy(updatetrans, updatetrans1);
+					strcat(updatetrans, rand1);
+					strcat(updatetrans, updatetrans2);
+					strcat(updatetrans, global_port);
+					strcat(updatetrans, updatetrans3);
+					strcat(updatetrans, global_password);
+					strcat(updatetrans, updatetrans4);
+				}
+
+
 				/* edit your database info here */
-				connectres = SPI_execute(connectChar("SELECT dblink_connect_u('", connectChar(rand1, "', 'hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808')")), false, 0);
+				connectres = SPI_execute(updatetrans, false, 0);
 				beginres = SPI_execute(connectChar("SELECT dblink_exec('", connectChar(rand1, "', 'BEGIN')")), false, 0);
 				insertres = SPI_execute(insertwater, false, 0);
 				commitres = SPI_execute(connectChar("SELECT dblink_exec('", connectChar(rand1, "', 'COMMIT')")), false, 0);
@@ -430,6 +455,125 @@ pg_integrity(PG_FUNCTION_ARGS)
 		SPI_finish();
 	}
 
+	if(TRIGGER_FIRED_BY_DELETE(trigdata->tg_event) && TRIGGER_FIRED_AFTER(trigdata->tg_event)) {
+		oldTuple = trigdata->tg_trigtuple;
+		currentRel = trigdata->tg_relation;
+		relName = RelationGetRelationName(currentRel);
+		char *dbname;
+		dbname = get_database_name(currentRel->rd_node.dbNode);
+		Oid t_data_Oid = HeapTupleGetOid(oldTuple);
+		char *oidchar;
+		oidchar = itostr(oidchar, t_data_Oid);		
+
+		int con;
+		if((con = SPI_connect()) < 0)
+			elog(ERROR, "select spi error");
+
+		char *query_current_user = "SELECT CURRENT_USER";
+		char *username = NULL;
+
+		char *rand2 = (char *)malloc(sizeof(char) * 20);
+		genRandomString(rand2, 10);
+
+		select_current_user_res = SPI_execute(query_current_user, true, 0);
+		if(select_current_user_res == SPI_OK_SELECT) {
+			uint64 i;
+			for(i=0; i<SPI_processed; i++) {
+				username = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+			}
+		}
+
+		if(username == NULL) {
+			elog(ERROR, "Get Username Error!");
+		}
+
+		char *query_user_privilege;
+
+		/* edit your database info here */
+		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=";
+		char *qup1_1 = " dbname=pgintegrity user=postgres password=";
+		char *qup1_1_1 = "', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
+		char *qup2 = "' AND db_name='";
+		char *qup3 = "' AND table_name='";
+		char *qup4 = "'";
+
+		query_user_privilege = palloc(strlen(qup1) + strlen(global_port) + strlen(qup1_1) + strlen(global_password) +strlen(qup2)+strlen(qup3)+strlen(qup4)+strlen(username)+strlen(dbname)+strlen(relName));
+
+		if(query_user_privilege == NULL) {
+		}else{
+			strcpy(query_user_privilege, qup1);
+			strcat(query_user_privilege, global_port);
+			strcat(query_user_privilege, qup1_1);
+			strcat(query_user_privilege, global_password);
+			strcat(query_user_privilege, qup1_1_1);
+			strcat(query_user_privilege, username);
+			strcat(query_user_privilege, qup2);
+			strcat(query_user_privilege, dbname);
+			strcat(query_user_privilege, qup3);
+			strcat(query_user_privilege, relName);
+			strcat(query_user_privilege, qup4);
+		}
+
+		int query_user_privilege_res;
+		query_user_privilege_res = SPI_execute(query_user_privilege, true, 0);
+
+		if(query_user_privilege_res == SPI_OK_SELECT) {
+			if(SPI_processed >= 1) {
+				int connectres;
+				int insertres;
+				int beginres;
+				int commitres;
+				int disconnectres;
+
+				char *updatetrans1 = "SELECT dblink_connect_u('";
+				char *updatetrans2 = "', 'hostaddr=127.0.0.1 port=";
+				char *updatetrans3 = " dbname=pgintegrity user=postgres password=";
+				char *updatetrans4 = "')";
+
+				char *updatetrans = palloc(strlen(updatetrans1)+ strlen(rand2) +strlen(updatetrans2)+ strlen(global_port) +strlen(updatetrans3) + strlen(global_password) + strlen(updatetrans4));
+
+				if(updatetrans == NULL) {
+				} else {
+					strcpy(updatetrans, updatetrans1);
+					strcat(updatetrans, rand2);
+					strcat(updatetrans, updatetrans2);
+					strcat(updatetrans, global_port);
+					strcat(updatetrans, updatetrans3);
+					strcat(updatetrans, global_password);
+					strcat(updatetrans, updatetrans4);
+				}
+
+
+
+
+				char *deletewater1 = "select dblink_exec('";
+				char *deletewater1_1 = "', 'delete from t_watermark where oid = ";
+				char *deletewater2 = "')";
+				char *deletewater = palloc(strlen(deletewater1)+strlen(deletewater2)+strlen(oidchar)+strlen(rand2) + strlen(deletewater1_1));
+
+				if(deletewater == NULL) {
+				} else {
+					strcpy(deletewater, deletewater1);
+					strcat(deletewater, rand2);
+					strcat(deletewater, deletewater1_1);
+					strcat(deletewater, oidchar);
+					strcat(deletewater, deletewater2);
+				}
+
+				/* edit your database info here */
+				connectres = SPI_execute(updatetrans, false, 0);
+//				connectres = SPI_execute("SELECT dblink_connect_u('conection', 'hostaddr=127.0.0.1 port=5432 dbname=pgintegrity user=postgres password=940808')", false, 0);
+				beginres = SPI_execute(connectChar("SELECT dblink_exec('", connectChar(rand2, "', 'BEGIN')")), false, 0);
+				insertres = SPI_execute(deletewater, false, 0);
+				commitres = SPI_execute(connectChar("SELECT dblink_exec('", connectChar(rand2, "', 'COMMIT')")), false, 0);
+				disconnectres = SPI_execute(connectChar("SELECT dblink_disconnect('", connectChar(rand2, "');")), false, 0);
+			} else {
+			}
+		}
+
+		SPI_finish();
+		//elog(ERROR, "break;");
+	}
 
     /* make sure it's called as a trigger at all */
     if (!CALLED_AS_TRIGGER(fcinfo))
