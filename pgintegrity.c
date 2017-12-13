@@ -16,7 +16,8 @@ PG_FUNCTION_INFO_V1(pg_integrity);
 
 
 char *global_port = "5432";
-char *global_password= "940808";
+char *global_password = NULL;
+// char *global_password= "940808";
 
 /* transfer int to char*  */
 char* itostr(char *str, int num) //将i转化位字符串存入str
@@ -207,6 +208,24 @@ pg_integrity(PG_FUNCTION_ARGS)
 		char *rand0 = (char *)malloc(sizeof(char) * 20);
 		genRandomString(rand0, 10);
 
+		int con;
+		if((con = SPI_connect()) < 0){
+			elog(ERROR, "SPI_connect error");
+		}
+
+		char *select_password_stat = "select current_setting('pgintegrity.password');";
+		int select_password = SPI_execute(select_password_stat, true, 0);
+		if(select_password == SPI_OK_SELECT) {
+			uint64 i;
+			for(i=0; i<SPI_processed; i++) {
+				global_password = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+				elog(INFO, "GET password: %s", global_password);
+			}
+		} else {
+			elog(ERROR, "No password: %s", global_password);
+		}
+
+
 		char *insert1 = connectChar("SELECT dblink_exec('", connectChar(rand0, "', 'insert into t_watermark values ("));
 
 		char *insert2 = ",\'\'";
@@ -229,10 +248,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 			strcat(insertwater, insert5);
 		}
 
-		int con;
-		if((con = SPI_connect()) < 0){
-			elog(ERROR, "SPI_connect error");
-		}
+
 
 		char *query_current_user = "SELECT CURRENT_USER";
 		char *username = NULL;
@@ -255,7 +271,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 
 		/* edit your database info here */
 		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=";
-		char *qup1_1_1 = " dbname=pgintegrity user=postgres password=";
+		char *qup1_1_1 = " dbname=pgintegrity user=umsuser password=";
 		char *qup1_1 = "', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
 		char *qup2 = "' AND db_name='";
 		char *qup3 = "' AND table_name='";
@@ -295,7 +311,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 				// 
 				char *connectchartrans1 = "SELECT dblink_connect_u('";
 				char *connectchartrans2 = "', 'hostaddr=127.0.0.1 port=";
-				char *connectchartrans3 = " dbname=pgintegrity user=postgres password=";
+				char *connectchartrans3 = " dbname=pgintegrity user=umsuser password=";
 				char *connectchartrans4 = "')";
 				char *connectchartrans = palloc(strlen(connectchartrans1)+strlen(rand0)+strlen(connectchartrans2)+ strlen(global_port) +strlen(connectchartrans3)+ strlen(global_password) +strlen(connectchartrans4));
 
@@ -351,6 +367,25 @@ pg_integrity(PG_FUNCTION_ARGS)
 		char *rand1 = (char *)malloc(sizeof(char) * 20);
 		genRandomString(rand1, 10);
 
+
+
+		int con;
+		if((con = SPI_connect()) < 0)
+			elog(ERROR, "select spi error");
+
+
+		char *select_password_stat = "select current_setting('pgintegrity.password');";
+		int select_password = SPI_execute(select_password_stat, true, 0);
+		if(select_password == SPI_OK_SELECT) {
+			uint64 i;
+			for(i=0; i<SPI_processed; i++) {
+				global_password = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+				elog(INFO, "GET password: %s", global_password);
+			}
+		} else {
+			elog(ERROR, "No password: %s", global_password);
+		}
+
 		char *insert1 = connectChar("SELECT dblink_exec('", connectChar(rand1, "', 'UPDATE t_watermark SET watermark = ''"));
 		char *insert2 = "\'\' WHERE oid=";
 		char *insert3 = "\')";
@@ -366,9 +401,6 @@ pg_integrity(PG_FUNCTION_ARGS)
 			strcat(insertwater, insert3);
 		}
 
-		int con;
-		if((con = SPI_connect()) < 0)
-			elog(ERROR, "select spi error");
 
 		char *query_current_user = "SELECT CURRENT_USER";
 		char *username = NULL;
@@ -390,7 +422,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 
 		/* edit your database info here */
 		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=";
-		char *qup1_1 = " dbname=pgintegrity user=postgres password=";
+		char *qup1_1 = " dbname=pgintegrity user=umsuser password=";
 		char *qup1_1_1 = "', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
 		char *qup2 = "' AND db_name='";
 		char *qup3 = "' AND table_name='";
@@ -425,7 +457,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 
 				char *updatetrans1 = "SELECT dblink_connect_u('";
 				char *updatetrans2 = "', 'hostaddr=127.0.0.1 port=";
-				char *updatetrans3 = " dbname=pgintegrity user=postgres password=";
+				char *updatetrans3 = " dbname=pgintegrity user=umsuser password=";
 				char *updatetrans4 = "')";
 
 				char *updatetrans = palloc(strlen(updatetrans1)+ strlen(rand1) +strlen(updatetrans2)+ strlen(global_port) +strlen(updatetrans3) + strlen(global_password) + strlen(updatetrans4));
@@ -469,6 +501,18 @@ pg_integrity(PG_FUNCTION_ARGS)
 		if((con = SPI_connect()) < 0)
 			elog(ERROR, "select spi error");
 
+		char *select_password_stat = "select current_setting('pgintegrity.password');";
+		int select_password = SPI_execute(select_password_stat, true, 0);
+		if(select_password == SPI_OK_SELECT) {
+			uint64 i;
+			for(i=0; i<SPI_processed; i++) {
+				global_password = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
+				elog(INFO, "GET password: %s", global_password);
+			}
+		} else {
+			elog(ERROR, "No password: %s", global_password);
+		}
+
 		char *query_current_user = "SELECT CURRENT_USER";
 		char *username = NULL;
 
@@ -491,7 +535,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 
 		/* edit your database info here */
 		char *qup1 = "SELECT * FROM dblink('hostaddr=127.0.0.1 port=";
-		char *qup1_1 = " dbname=pgintegrity user=postgres password=";
+		char *qup1_1 = " dbname=pgintegrity user=umsuser password=";
 		char *qup1_1_1 = "', 'SELECT user_name, db_name, table_name FROM t_privilege') as t(user_name text, db_name text, table_name text) WHERE user_name='";
 		char *qup2 = "' AND db_name='";
 		char *qup3 = "' AND table_name='";
@@ -527,7 +571,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 
 				char *updatetrans1 = "SELECT dblink_connect_u('";
 				char *updatetrans2 = "', 'hostaddr=127.0.0.1 port=";
-				char *updatetrans3 = " dbname=pgintegrity user=postgres password=";
+				char *updatetrans3 = " dbname=pgintegrity user=umsuser password=";
 				char *updatetrans4 = "')";
 
 				char *updatetrans = palloc(strlen(updatetrans1)+ strlen(rand2) +strlen(updatetrans2)+ strlen(global_port) +strlen(updatetrans3) + strlen(global_password) + strlen(updatetrans4));
