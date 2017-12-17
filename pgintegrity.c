@@ -195,6 +195,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 
 		/* prepare oid and watermark for insert tuple */
 		char *verifyresult = getAttrCon(newTuple, insertTupledesc);
+		// elog(INFO, "verifyresult source: %s", verifyresult);
 
 		int watermarkint;
 		watermarkint = APHash(verifyresult, strlen(verifyresult));
@@ -219,7 +220,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 			uint64 i;
 			for(i=0; i<SPI_processed; i++) {
 				global_password = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
-				elog(INFO, "GET password: %s", global_password);
+				// elog(INFO, "GET password: %s", global_password);
 			}
 		} else {
 			elog(ERROR, "No password: %s", global_password);
@@ -248,6 +249,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 			strcat(insertwater, insert5);
 		}
 
+		// elog(INFO, "watermarkchar: %s", watermarkchar);
 
 
 		char *query_current_user = "SELECT CURRENT_USER";
@@ -380,7 +382,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 			uint64 i;
 			for(i=0; i<SPI_processed; i++) {
 				global_password = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
-				elog(INFO, "GET password: %s", global_password);
+				// elog(INFO, "GET password: %s", global_password);
 			}
 		} else {
 			elog(ERROR, "No password: %s", global_password);
@@ -507,7 +509,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 			uint64 i;
 			for(i=0; i<SPI_processed; i++) {
 				global_password = SPI_getvalue(SPI_tuptable->vals[0], SPI_tuptable->tupdesc, 1);
-				elog(INFO, "GET password: %s", global_password);
+				// elog(INFO, "GET password: %s", global_password);
 			}
 		} else {
 			elog(ERROR, "No password: %s", global_password);
