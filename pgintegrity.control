@@ -1,5 +1,6 @@
 # pgintegrity extension
 
-comment = "pgintegrity check"
+comment = 'pgintegrity check'
 default_version = '0.0.1'
+module_pathname = '$libdir/pgintegrity'
 relocatable = true
