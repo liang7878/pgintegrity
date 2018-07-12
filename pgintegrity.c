@@ -30,14 +30,24 @@ char* itostr(char *str, int num) //将i转化位字符串存入str
 
 unsigned int APHash(char* str, unsigned int len)
 {
-   unsigned int hash = 0xAAAAAAAA;
-   unsigned int i    = 0;
-   for(i = 0; i < len; str++, i++)
-   {
-      hash ^= ((i & 1) == 0) ? (  (hash <<  7) ^ (*str) * (hash >> 3)) :
-                               (~((hash << 11) + (*str) ^ (hash >> 5)));
-   }
-   return hash;
+   // unsigned int hash = 0xAAAAAAAA;
+   // unsigned int i    = 0;
+   // for(i = 0; i < len; str++, i++)
+   // {
+   //    hash ^= ((i & 1) == 0) ? (  (hash <<  7) ^ (*str) * (hash >> 3)) :
+   //                             (~((hash << 11) + (*str) ^ (hash >> 5)));
+   //    elog(INFO, "HASH %d>>>>>>>> %sd <<<<<<<<<", i, )
+   // }
+   // return hash;
+    unsigned int hash = 0;
+ 
+    while (*str)
+    {
+        // equivalent to: hash = 65599*hash + (*str++);
+        hash = (*str++) + (hash << 6) + (hash << 16) - hash;
+    }
+ 
+    return (hash & 0x7FFFFFFF);
 }
 /* End Of AP Hash Function */ 
 
@@ -198,6 +208,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 		// elog(INFO, "verifyresult source: %s", verifyresult);
 
 		int watermarkint;
+		// elog(INFO, "verifyresult: >>>>>>>>>>>  %s  <<<<<<<<<<<<<<<<", verifyresult);
 		watermarkint = APHash(verifyresult, strlen(verifyresult));
 
 		char *watermarkchar;
@@ -250,6 +261,7 @@ pg_integrity(PG_FUNCTION_ARGS)
 		}
 
 		// elog(INFO, "watermarkchar: %s", watermarkchar);
+		// elog(INFO, "insertwater: %s", insertwater);
 
 
 		char *query_current_user = "SELECT CURRENT_USER";
@@ -298,6 +310,8 @@ pg_integrity(PG_FUNCTION_ARGS)
 
 		int query_user_privilege_res;
 		query_user_privilege_res = SPI_execute(query_user_privilege, true, 0);
+		// elog(INFO, "query privilege: %s", query_user_privilege);
+
 		if(query_user_privilege_res == SPI_OK_SELECT) {
 			if(SPI_processed >= 1) {
 				int connectres;
@@ -327,6 +341,8 @@ pg_integrity(PG_FUNCTION_ARGS)
 					strcat(connectchartrans, global_password);
 					strcat(connectchartrans, connectchartrans4);
 				}
+
+				// elog(INFO, "connect:>>>>> %s", connectchartrans);
 
 				connectres = SPI_execute(connectchartrans, false, 0);
 				beginres = SPI_execute(connectChar("SELECT dblink_exec('", connectChar(rand0, "', 'BEGIN')")), false, 0);
